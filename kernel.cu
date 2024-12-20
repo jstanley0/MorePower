@@ -6,17 +6,6 @@
 #define THREADS_PER_BLOCK 1024
 #define BLOCKS 256
 
-__device__ bool check(uint64_t a) {
-    uint64_t b, r = 0;
-    while (a != 0) {
-        b = (a & 7) ^ 1;
-        b ^= (a >> b) ^ 4;
-        a >>= 3;
-        r = (r << 3) | b & 7;
-    }
-    return r == 02411754603145530ULL;
-}
-
 __global__ void search(uint64_t batch_start, uint64_t* result) {
     unsigned long idx = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -24,7 +13,14 @@ __global__ void search(uint64_t batch_start, uint64_t* result) {
     uint64_t range_end = range_start + CHECKS_PER_THREAD;
 
     for (uint64_t i = range_start; i < range_end; ++i) {
-        if (check(i)) {
+        uint64_t a = i, r = 0, b;
+        while (a != 0) {
+            b = (a & 7) ^ 1;
+            b ^= (a >> b) ^ 4;
+            a >>= 3;
+            r = (r << 3) | b & 7;
+        }
+        if (r == 02411754603145530ULL) {
             atomicMin(result, i);
             break;
         }
